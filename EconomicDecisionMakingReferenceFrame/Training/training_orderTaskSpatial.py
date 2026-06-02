@@ -1,25 +1,25 @@
-from delayed_economic_deicision import DelayedEconomicDecision_AlternateOutput 
+from delayed_economic_deicision import DelayedEconomicDecision_AlternateOutput
 from psychrnn.backend.models.basic import Basic
-# from accuracy_function_for_seqEcoDecMake import performance_measure_for_RNN
-import os 
+from accuracy_function_for_seqEcoDecMake import performance_measure_for_RNN
+import os
 import datetime
 import numpy as np
 from psychrnn.backend.simulation import BasicSimulator
 
-taskTrainName = 'juiceTaskDefault'
+taskTrainName = 'orderTaskSpatial'
 saveRoot = './savedForHPC/'
 os.makedirs(saveRoot+taskTrainName,exist_ok=True)
 
 # task and model parameters
 dt = 10 # The simulation timestep.
 tau = 100 # The intrinsic time constant of neural state decay.
-T = 4000 # The trial length.
+T = 2000 # The trial length.
 N_trials_per_condition = 4 # The number of trials per training update.
-dd = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = T, N_trials_per_condition = N_trials_per_condition,target_delay_duration=500,wait_duration=500,outputMode='juice')
+dd = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, N_trials_per_condition = N_trials_per_condition,target_delay_duration=500,wait_duration=500,outputMode='order',encode_spatial=True,spatial_timing='offer')
 
 offer_pair_test = [(iA*0.5,iB*0.5*1.7) for iA in range(9) for iB in range(9)]
-dd_test = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, target_delay_duration=500,wait_duration=500,outputMode='juice',
-                                                  N_trials_per_condition = 10,offer_pairs=offer_pair_test)
+dd_test = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, target_delay_duration=500,wait_duration=500,outputMode='order',
+                                                  N_trials_per_condition = 10,offer_pairs=offer_pair_test,encode_spatial=True,spatial_timing='offer')
 
 
 N_rec = 50 # The number of recurrent units in the network.
@@ -33,7 +33,7 @@ network_params['rec_noise'] = 0.1 # Noise into each recurrent unit. Default: 0.0
 
 
 
-# Set the training parameters 
+# Set the training parameters
 train_params = {}
 train_params['save_weights_path'] =  None # Where to save the model after training. Default: None
 train_params['training_iters'] = 400000 # number of iterations to train for Default: 50000
@@ -47,26 +47,26 @@ train_params['clip_grads'] = True # If true, clip gradients by norm 1. Default: 
 # Example usage of the optional fixed_weights parameter is available in the Biological Constraints tutorial
 train_params['fixed_weights'] = None # Dictionary of weights to fix (not allow to train). Default: None
 # Example usage of the optional performance_cutoff and performance_measure parameters is available in Curriculum Learning tutorial.
-# def performance_measure(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity):
-#     return performance_measure_for_RNN(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity,network_params)
+def performance_measure(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity):
+    return performance_measure_for_RNN(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity,network_params)
 
 train_params['curriculum'] = None
-train_params['performance_measure'] = None
-train_params['performance_cutoff'] = None
+train_params['performance_measure'] = performance_measure
+train_params['performance_cutoff'] = .99
 
 ## -------- Training loop ##
-ensembleSize=40
+ensembleSize=50
 for netii in range(ensembleSize):
     startTime = datetime.datetime.now().strftime('%Y%m%d-%H-%m')
 
     print(startTime, netii)
-    
+
     model = Basic(network_params)
     initialWeight = model.get_weights()
 
     losses, trainTime, initialTime= model.train(dd, train_params)
 
-    # ---------------------- Test the trained model --------------------------- 
+    # ---------------------- Test the trained model ---------------------------
     x,target_output,mask, trial_params = dd.get_trial_batch() # get pd task inputs and outputs
     model_output, model_state = model.test(x) # run the model on input x
 
@@ -78,7 +78,7 @@ for netii in range(ensembleSize):
     dirName = taskTrainName+'/' +(taskTrainName+'_'+saveTime+'_'+str(netii)+'_'+Fail)+'/'
 
     dirPath = saveRoot+dirName
-    os.makedirs(dirPath) 
+    os.makedirs(dirPath)
 
     model.save(dirPath+'weightFinal')
     np.savez(dirPath+'weightInit',weightInit=initialWeight)
@@ -86,13 +86,20 @@ for netii in range(ensembleSize):
     np.savez(dirPath+'trainingHistory',losses=losses, trainTime=trainTime, initialTime=initialTime, startTime=startTime,saveTime=saveTime)
     np.savez(dirPath+'network_params',network_params=network_params)
 
-
     x,target_output,mask, trial_params = dd_test    .get_trial_batch() # get pd task inputs and outputs
     simulator = BasicSimulator(weights_path=os.path.abspath(dirPath+'weightFinal.npz'),
                            params = {'dt': dt, 'tau': tau})
     model_output, model_state = simulator.run_trials(x) # run the model on input x
-    np.savez(os.path.join(dirPath,'activitityTestGrid.npz'),x=x,trial_params=trial_params,model_output=model_output,model_state=model_state,mask=mask)
+    np.savez(os.path.join(dirPath,'activitityTestGridNoiseLess.npz'),x=x,trial_params=trial_params,model_output=model_output,model_state=model_state,mask=mask)
+
+    # network_params_test = network_params.copy()
+    # network_params_test['name'] = 'testModel'
+    # network_params_test['load_weights_path'] = os.path.abspath(dirPath+'weightFinal.npz')
+    # testModel = Basic(network_params_test)
+    # model_output, model_state = testModel.test(x) # run the model on input x
+    # np.savez(os.path.join(dirPath,'activitityTestGrid.npz'),x=x,trial_params=trial_params,model_output=model_output,model_state=model_state,mask=mask)
 
     model.destruct()
+    # testModel.destruct()
     print(dirPath)
     print(os.listdir(dirPath))

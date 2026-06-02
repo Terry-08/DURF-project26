@@ -1,6 +1,6 @@
 from delayed_economic_deicision import DelayedEconomicDecision_AlternateOutput 
 from psychrnn.backend.models.basic import Basic
-from accuracy_function_for_seqEcoDecMake import performance_measure_for_RNN
+# from accuracy_function_for_seqEcoDecMake import performance_measure_for_RNN
 import os 
 import datetime
 import numpy as np
@@ -47,12 +47,12 @@ train_params['clip_grads'] = True # If true, clip gradients by norm 1. Default: 
 # Example usage of the optional fixed_weights parameter is available in the Biological Constraints tutorial
 train_params['fixed_weights'] = None # Dictionary of weights to fix (not allow to train). Default: None
 # Example usage of the optional performance_cutoff and performance_measure parameters is available in Curriculum Learning tutorial.
-def performance_measure(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity):
-    return performance_measure_for_RNN(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity,network_params)
+# def performance_measure(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity):
+#     return performance_measure_for_RNN(trial_batch, trial_y, output_mask, output, epoch, losses, verbosity,network_params)
 
 train_params['curriculum'] = None
-train_params['performance_measure'] = performance_measure
-train_params['performance_cutoff'] = .99
+train_params['performance_measure'] = None
+train_params['performance_cutoff'] = None
 
 ## -------- Training loop ##
 ensembleSize=50

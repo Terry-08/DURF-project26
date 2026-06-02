@@ -23,6 +23,8 @@ class DelayedEconomicDecision_AlternateOutput(Task):
         T (float): The trial length.
         N_batch (int): The number of trials per training update.
         outputMode (str): 'juice', 'order' or 'both'
+        encode_spatial (bool): Add explicit one-hot spatial layout input channels.
+        spatial_timing (str): When to present explicit spatial channels. Supports 'offer' and 'target'.
         onset_time (int): first stimulus onset time.
         stim_duration_1 (int): Duration of first stimulus.
         InterOffer_duration (int): Duration of inter-offer interval.
@@ -36,13 +38,20 @@ class DelayedEconomicDecision_AlternateOutput(Task):
     def __init__(self, dt, tau, T, N_batch=None,
         onset_time = 500, stim_duration_1 = 500, InterOffer_duration: Union[range,int] = 500, stim_duration_2 = 500, 
         early_conxt=False,
-        wait_duration = 0, target_delay_duration = 200, respond_duration=200,outputMode='both',juiceTrialProp=0.5,offer_pairs=None,N_trials_per_condition=None,ind_point=1.7):
+        wait_duration = 0, target_delay_duration = 200, respond_duration=200,outputMode='both',juiceTrialProp=0.5,offer_pairs=None,N_trials_per_condition=None,ind_point=1.7,
+        encode_spatial=False, spatial_timing='offer'):
+        if spatial_timing not in ('offer', 'target'):
+            raise ValueError("spatial_timing must be either 'offer' or 'target'.")
+
         N_stim = 2
         N_target = 2+2+2
         N_fixation = 2 if early_conxt else 1
-        N_in = N_stim+N_target+N_fixation
+        N_spatial = 2 if encode_spatial else 0
+        N_in = N_stim+N_target+N_fixation+N_spatial
         
         self._early_conxt = early_conxt
+        self.encode_spatial = encode_spatial
+        self.spatial_timing = spatial_timing
         self._input_names = ['qA_norm','qB_norm', # juice quantity inputs
                 'A_','B_','_A','_B', # choice-to-action mapping cues for the juice task
                 '12','21',  # choice-to-action mapping cues for the order task
@@ -50,6 +59,10 @@ class DelayedEconomicDecision_AlternateOutput(Task):
         
         if early_conxt:
             self._input_names = ['qA_norm','qB_norm','A_','B_','_A','_B','12','21','fix_juice','fix_order']
+
+        if encode_spatial:
+            self._input_names.extend(['spatial_opt1_left','spatial_opt2_left'])
+        self._input_index = {name: ii for ii, name in enumerate(self._input_names)}
         
         self.output_names = ['left','right']
 
@@ -103,6 +116,33 @@ class DelayedEconomicDecision_AlternateOutput(Task):
 
         self.lo = 0.2 # Low value for one hot encoding
         self.hi = 1.0 # High value for one hot encoding
+
+    def _get_fixation_channel(self, choiceFrame):
+        if not self._early_conxt:
+            return self._input_index['fixation']
+        if choiceFrame == 'juice':
+            return self._input_index['fix_juice']
+        return self._input_index['fix_order']
+
+    def _get_target_channels(self, choiceFrame, locAB):
+        if choiceFrame == 'juice':
+            if locAB == 'AB':
+                return [self._input_index['A_'], self._input_index['_B']]
+            return [self._input_index['B_'], self._input_index['_A']]
+        if locAB == '12':
+            return [self._input_index['12']]
+        return [self._input_index['21']]
+
+    def _get_spatial_channels(self, choiceFrame, locAB):
+        if not self.encode_spatial:
+            return []
+        if choiceFrame == 'juice':
+            opt1_left = locAB == 'AB'
+        else:
+            opt1_left = locAB == '12'
+        if opt1_left:
+            return [self._input_index['spatial_opt1_left']]
+        return [self._input_index['spatial_opt2_left']]
     
     def _range_norm_B(self,offerquantity):
         """range normalization
@@ -301,19 +341,9 @@ class DelayedEconomicDecision_AlternateOutput(Task):
             q2 = self._range_norm_A(q2)
        
         # instructed choice at target period
-        if choiceFrame == 'juice':
-            fix_channel = 8
-            if locAB == 'AB': # choice-to-action mapping cue in the juice task
-                tg1,tg2 = (2,5) # target channels [*leftA,leftB,rightA,*rightB]
-            else:
-                tg1,tg2 = (3,4) # target channels [leftA,*leftB,,*rightA,rightB]
-        elif choiceFrame == 'order':
-            fix_channel = 9 if self._early_conxt else 8 # testing if the RNN can display context-dependet computation
-            loc12 = locAB # choice-to-action mapping cue in the order task
-            if loc12 == '12': 
-                tg=6
-            else:
-                tg=7                
+        fix_channel = self._get_fixation_channel(choiceFrame)
+        target_channels = self._get_target_channels(choiceFrame, locAB)
+        spatial_channels = self._get_spatial_channels(choiceFrame, locAB)
 
 
         # ----------------------------------
@@ -325,19 +355,23 @@ class DelayedEconomicDecision_AlternateOutput(Task):
             # normalized quantity of the first offer (q1)
             # is input through the corrsponding juice channel (c1)
             x_t[c1] += q1
+            if self.spatial_timing == 'offer':
+                for spatial_channel in spatial_channels:
+                    x_t[spatial_channel] +=1
 
         if stimulus_2_onset <= t < stimulus_2_offset:
             # at stimulus 2 period, q2 is input throught c2 channel
             x_t[c2] += q2
+            if self.spatial_timing == 'offer':
+                for spatial_channel in spatial_channels:
+                    x_t[spatial_channel] +=1
 
         if target_onset <=t:
-            if choiceFrame == 'juice':
-                # choice-to-action mapping cue in the juice task
-                x_t[tg1] +=1
-                x_t[tg2] +=1
-            elif choiceFrame == 'order':
-                # choice-to-action mapping cue in the order task
-                x_t[tg] +=1
+            for target_channel in target_channels:
+                x_t[target_channel] +=1
+            if self.spatial_timing == 'target':
+                for spatial_channel in spatial_channels:
+                    x_t[spatial_channel] +=1
 
         if t<fixation_offset: # fixation channel is on until the go cue
             x_t[fix_channel] +=1
