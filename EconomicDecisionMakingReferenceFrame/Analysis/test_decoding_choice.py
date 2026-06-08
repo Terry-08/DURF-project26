@@ -11,10 +11,11 @@ from pathlib import Path
 import pandas as pd
 
 dirName = sys.argv[1]
+savedRoot = Path("/gpfsnyu/home/zl6041/DURF_project/EconomicDecisionMakingReferenceFrame/Training/savedForHPC")
 
 
 def main():
-    for root, dirs, files in os.walk("/gpfsnyu/scratch/jtg374/psychrnn/savedForHPC/"+dirName, topdown=False):
+    for root, dirs, files in os.walk(savedRoot / dirName, topdown=False):
         for name in dirs:
             dirPath = os.path.join(root,name)
             # --------behavior -----------------------
@@ -53,7 +54,7 @@ def main():
             plt.close('all')
 
 def main_bak():
-    for root, dirs, files in os.walk("/gpfsnyu/scratch/jtg374/psychrnn/savedForHPC/"+dirName, topdown=False):
+    for root, dirs, files in os.walk(savedRoot / dirName, topdown=False):
         for name in dirs:
             dirPath = os.path.join(root,name)
             print(dirPath)
