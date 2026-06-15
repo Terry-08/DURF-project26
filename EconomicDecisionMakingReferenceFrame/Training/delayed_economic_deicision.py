@@ -39,7 +39,7 @@ class DelayedEconomicDecision_AlternateOutput(Task):
         onset_time = 500, stim_duration_1 = 500, InterOffer_duration: Union[range,int] = 500, stim_duration_2 = 500, 
         early_conxt=False,
         wait_duration = 0, target_delay_duration = 200, respond_duration=200,outputMode='both',juiceTrialProp=0.5,offer_pairs=None,N_trials_per_condition=None,ind_point=1.7,
-        encode_spatial=False, spatial_timing='offer'):
+        encode_spatial=False, spatial_timing='target'):
         if spatial_timing not in ('offer', 'target'):
             raise ValueError("spatial_timing must be either 'offer' or 'target'.")
 

@@ -6,7 +6,7 @@ import datetime
 import numpy as np
 from psychrnn.backend.simulation import BasicSimulator
 
-taskTrainName = 'orderTaskSpatial'
+taskTrainName = 'orderTaskSpatialTarget'
 saveRoot = './savedForHPC/'
 os.makedirs(saveRoot+taskTrainName,exist_ok=True)
 
@@ -15,11 +15,11 @@ dt = 10 # The simulation timestep.
 tau = 100 # The intrinsic time constant of neural state decay.
 T = 2000 # The trial length.
 N_trials_per_condition = 4 # The number of trials per training update.
-dd = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, N_trials_per_condition = N_trials_per_condition,target_delay_duration=500,wait_duration=500,outputMode='order',encode_spatial=True,spatial_timing='offer')
+dd = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, N_trials_per_condition = N_trials_per_condition,target_delay_duration=500,wait_duration=500,outputMode='order',encode_spatial=True,spatial_timing='target')
 
 offer_pair_test = [(iA*0.5,iB*0.5*1.7) for iA in range(9) for iB in range(9)]
 dd_test = DelayedEconomicDecision_AlternateOutput(dt = dt, tau = tau, T = 4000, target_delay_duration=500,wait_duration=500,outputMode='order',
-                                                  N_trials_per_condition = 10,offer_pairs=offer_pair_test,encode_spatial=True,spatial_timing='offer')
+                                                  N_trials_per_condition = 10,offer_pairs=offer_pair_test,encode_spatial=True,spatial_timing='target')
 
 
 N_rec = 50 # The number of recurrent units in the network.
