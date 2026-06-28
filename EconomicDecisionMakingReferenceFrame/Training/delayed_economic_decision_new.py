@@ -151,6 +151,7 @@ class DelayedEconomicDecision_SpatialTask(Task):
         stimulus_2_offset = params['stimulus_2_offset']
         target_onset = params['target_onset']
         fixation_offset = params['fixation_offset']
+        end = params['end']
 
         qA, qB = params['qA'], params['qB']
         seqAB = params['seqAB']
@@ -171,12 +172,13 @@ class DelayedEconomicDecision_SpatialTask(Task):
         if stimulus_2_onset <= t < stimulus_2_offset:
             x_t[self._offer_channel(juice2, side2)] += q2
 
-        if target_onset <= t:
+        if target_onset <= t < fixation_offset:
             x_t[self._input_index['target']] += 1
 
         if t < fixation_offset:
             x_t[self._input_index['fixation']] += 1
-        else:
+
+        if fixation_offset <= t < end:
             y_t[choice] = self.hi
             y_t[1-choice] = self.lo
             mask_t = np.ones(self.N_out)
