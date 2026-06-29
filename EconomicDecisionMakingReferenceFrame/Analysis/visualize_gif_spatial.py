@@ -1,4 +1,4 @@
-import imageio
+import imageio.v2 as imageio
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -310,6 +310,68 @@ def generateSnapShot_Choice(dirPath,activityFilename,outputMode,gif_name,figsize
     return image_files,frames
 
 
+def generateSnapShot_Action(dirPath,activityFilename,outputMode,gif_name,figsize):
+    image_files=[]
+    frames = []
+
+    x,trial_params,model_state,choice12,choiceAB,choiceLR,qAs,qBs,seqAB,loc12,loc12_label,chosen_offer,offer1_side = importAndPreprocess(dirPath,activityFilename)
+    weightFile = os.path.join(dirPath,'weightFinal.npz')
+
+    xx,yy=0,1
+    pcaObj,xlim,ylim,range_x,range_y = getPCA(model_state,xx,yy)
+    xpc,ypc,vec_grid_noInput_project = generateVectorField(weightFile,pcaObj,xlim,ylim)
+
+    fig,ax = plt.subplots(figsize=figsize,dpi=150)
+    ax.quiver(xpc,ypc,vec_grid_noInput_project[:,:,0],vec_grid_noInput_project[:,:,1],label='__no_label_',color='grey')
+
+    t1=250
+    points = pcaObj.transform(np.squeeze(model_state[:,t1,:]))
+
+    idx_offer1 = chosen_offer == 1
+    idx_offer2 = chosen_offer == 2
+
+    hOffer1=ax.scatter(points[idx_offer1,xx],points[idx_offer1,yy],marker='.',
+            c=choiceLR[idx_offer1],cmap='coolwarm',vmin=-1,vmax=1)
+    hOffer2=ax.scatter(points[idx_offer2,xx],points[idx_offer2,yy],marker='x',
+            c=choiceLR[idx_offer2],cmap='coolwarm',vmin=-1,vmax=1)
+
+    proxyOffer1, = ax.plot([],[],marker='.',color='tab:gray',linestyle='None',label='chosen offer 1')
+    proxyOffer2, = ax.plot([],[],marker='x',color='tab:gray',linestyle='None',label='chosen offer 2')
+    ax.set_xlabel('PC%d'%(xx+1))
+    ax.set_ylabel('PC%d'%(yy+1))
+    ax.set_aspect('equal','box')
+
+    ax.set(xlim=xlim,ylim=ylim)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    hTxt=ax.text(xlim[0]+range_x*0.01,ylim[0]+range_y*0.01,"t=%dms target"%(t1*10))
+    ax.legend(handles=[proxyOffer1,proxyOffer2],bbox_to_anchor=(1.04, 1), loc="upper left")
+    clb=plt.colorbar(hOffer1,ax=ax,label='chosen side')
+    clb.set_ticks([-1,1])
+    clb.set_ticklabels(['choose left','choose right'])
+
+    ts = np.arange(250,325,5)
+    num_frames = len(ts)
+
+    for i in range(num_frames):
+        tt = ts[i]
+        points = pcaObj.transform(np.squeeze(model_state[:,tt,:]))
+        update_scatter(hOffer1,points[idx_offer1,xx],points[idx_offer1,yy])
+        update_scatter(hOffer2,points[idx_offer2,xx],points[idx_offer2,yy])
+        phase = 'target' if tt < 300 else 'response'
+        hTxt.set_text("t=%dms %s"%(tt*10,phase))
+        fig.canvas.draw_idle()
+
+        filename = os.path.join(dirPath,f"gif/temp/{gif_name}_frame_{i:03d}.png")
+        plt.savefig(filename, bbox_inches='tight')
+
+        image_files.append(filename)
+        frames.append(imageio.imread(filename))
+
+    plt.close(fig)
+    return image_files,frames
+
+
 def generateGif_From(image_and_frame,gif_path,nPause=3,delete=False):
     image_files,frames = image_and_frame
 
@@ -349,12 +411,18 @@ def generateGif(dirPath,outputMode):
     gif_path_choice = os.path.join(dirPath,'gif',gif_name_choice+'.gif')
     image_files_choice,frames_choice = generateSnapShot_Choice(dirPath,activityFileName,outputMode,gif_name_choice,figsize)
     generateGif_From((image_files_choice,frames_choice),gif_path_choice,3)
+    gif_name_action = 'gifAction'
+    gif_path_action = os.path.join(dirPath,'gif',gif_name_action+'.gif')
+    image_files_action,frames_action = generateSnapShot_Action(dirPath,activityFileName,outputMode,gif_name_action,figsize)
+    generateGif_From((image_files_action,frames_action),gif_path_action,3)
 
     gif_path_full = os.path.join(dirPath,'gif','gifFull.gif')
     frames_choice,frames_encode = fix_padding(frames_choice,frames_encode)
-    nPause_1, nPause_2,nPause_3 = 3,2,4
-    image_files_full = image_files_encode + [image_files_encode[-1]]*nPause_1 + [image_files_choice[0]]*nPause_2 + image_files_choice + [image_files_choice[-1]]*nPause_3
-    frames_full = frames_encode + [frames_encode[-1]]*nPause_1 + [frames_choice[0]]*nPause_2 + frames_choice + [frames_choice[-1]]*nPause_3
+    frames_action,frames_encode = fix_padding(frames_action,frames_encode)
+    frames_action,frames_choice = fix_padding(frames_action,frames_choice)
+    nPause_1, nPause_2,nPause_3,nPause_4,nPause_5 = 3,2,3,2,4
+    image_files_full = image_files_encode + [image_files_encode[-1]]*nPause_1 + [image_files_choice[0]]*nPause_2 + image_files_choice + [image_files_choice[-1]]*nPause_3 + [image_files_action[0]]*nPause_4 + image_files_action + [image_files_action[-1]]*nPause_5
+    frames_full = frames_encode + [frames_encode[-1]]*nPause_1 + [frames_choice[0]]*nPause_2 + frames_choice + [frames_choice[-1]]*nPause_3 + [frames_action[0]]*nPause_4 + frames_action + [frames_action[-1]]*nPause_5
     generateGif_From((image_files_full,frames_full),gif_path_full,nPause=0)
 
 
