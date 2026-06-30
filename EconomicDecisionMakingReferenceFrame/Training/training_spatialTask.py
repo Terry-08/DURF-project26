@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 from psychrnn.backend.simulation import BasicSimulator
 
-taskTrainName = 'spatialTask'
+taskTrainName = 'spatialTaskLateMapping'
 saveRoot = './savedForHPC/'
 os.makedirs(saveRoot+taskTrainName, exist_ok=True)
 

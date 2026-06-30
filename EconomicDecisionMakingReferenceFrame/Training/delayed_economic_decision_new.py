@@ -6,11 +6,11 @@ import numpy as np
 
 
 class DelayedEconomicDecision_SpatialTask(Task):
-    """Delayed economic decision task with offer-side spatial inputs.
+    """Delayed economic decision task with late offer-to-space mapping.
 
-    Offer 1 and Offer 2 are presented sequentially, with the first/second offer
-    randomly assigned to left/right or right/left screen positions. At target
-    time, the network reports the side of the chosen offer.
+    Offer 1 and Offer 2 are presented sequentially without spatial binding in
+    the offer inputs. At target time, the first/second offer to left/right
+    mapping is revealed, and the network reports the side of the chosen offer.
     """
 
     def __init__(self, dt, tau, T, N_batch=None,
@@ -19,8 +19,9 @@ class DelayedEconomicDecision_SpatialTask(Task):
         offer_pairs=None, N_trials_per_condition=None, ind_point=1.7):
 
         self._input_names = [
-            'qA_left', 'qA_right',
-            'qB_left', 'qB_right',
+            'qA_norm', 'qB_norm',
+            'offer1', 'offer2',
+            'offer1_left', 'offer2_left',
             'target',
             'fixation'
         ]
@@ -89,8 +90,8 @@ class DelayedEconomicDecision_SpatialTask(Task):
         p = 1/(1+np.exp(-X))
         return int(np.random.random() < p)
 
-    def _offer_channel(self, juice, side):
-        return self._input_index['q%s_%s' % (juice, side)]
+    def _offer_channel(self, juice):
+        return self._input_index['q%s_norm' % juice]
 
     def generate_trial_params(self, batch, trial):
         params = dict()
@@ -158,7 +159,6 @@ class DelayedEconomicDecision_SpatialTask(Task):
         loc12 = params['loc12']
         choice = params['choice']
 
-        side1, side2 = ('left', 'right') if loc12[0] == 1 else ('right', 'left')
         if seqAB == 'AB':
             juice1, juice2 = 'A', 'B'
             q1, q2 = self._range_norm_A(qA), self._range_norm_B(qB)
@@ -167,13 +167,17 @@ class DelayedEconomicDecision_SpatialTask(Task):
             q1, q2 = self._range_norm_B(qB), self._range_norm_A(qA)
 
         if stimulus_1_onset <= t < stimulus_1_offset:
-            x_t[self._offer_channel(juice1, side1)] += q1
+            x_t[self._offer_channel(juice1)] += q1
+            x_t[self._input_index['offer1']] += 1
 
         if stimulus_2_onset <= t < stimulus_2_offset:
-            x_t[self._offer_channel(juice2, side2)] += q2
+            x_t[self._offer_channel(juice2)] += q2
+            x_t[self._input_index['offer2']] += 1
 
         if target_onset <= t < fixation_offset:
             x_t[self._input_index['target']] += 1
+            x_t[self._input_index['offer1_left']] += loc12[0]
+            x_t[self._input_index['offer2_left']] += loc12[1]
 
         if t < fixation_offset:
             x_t[self._input_index['fixation']] += 1
