@@ -9,7 +9,7 @@ mpl.rcParams['ps.fonttype'] = 42
 import os
 
 
-dirName = 'spatialTaskLateMapping'
+dirName = 'spatialTask'
 outputMode = 'spatial'
 
 
