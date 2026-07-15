@@ -1,11 +1,11 @@
-from delayed_economic_decision_new import DelayedEconomicDecision_SpatialTask
+from delayed_economic_decision_seperated import DelayedEconomicDecision_SeparatedSpatialTask
 from psychrnn.backend.models.basic import Basic
 import os
 import datetime
 import numpy as np
 from psychrnn.backend.simulation import BasicSimulator
 
-taskTrainName = 'spatialTask'
+taskTrainName = 'spatialTaskSeperated'
 saveRoot = './savedForHPC/'
 os.makedirs(saveRoot+taskTrainName, exist_ok=True)
 
@@ -14,11 +14,11 @@ dt = 10 # The simulation timestep.
 tau = 100 # The intrinsic time constant of neural state decay.
 T = 4000 # The trial length.
 N_trials_per_condition = 4 # The number of trials per training update.
-dd = DelayedEconomicDecision_SpatialTask(dt=dt, tau=tau, T=T, N_trials_per_condition=N_trials_per_condition,target_delay_duration=500,wait_duration=500)
+dd = DelayedEconomicDecision_SeparatedSpatialTask(dt=dt, tau=tau, T=T, N_trials_per_condition=N_trials_per_condition,target_delay_duration=500,wait_duration=500)
 
 offer_pair_test = [(iA*0.5,iB*0.5*1.7) for iA in range(9) for iB in range(9)]
-dd_test = DelayedEconomicDecision_SpatialTask(dt=dt, tau=tau, T=4000, target_delay_duration=500,wait_duration=500,
-                                              N_trials_per_condition=10,offer_pairs=offer_pair_test)
+dd_test = DelayedEconomicDecision_SeparatedSpatialTask(dt=dt, tau=tau, T=4000, target_delay_duration=500,wait_duration=500,
+                                                       N_trials_per_condition=10,offer_pairs=offer_pair_test)
 
 
 N_rec = 50 # The number of recurrent units in the network.
