@@ -12,7 +12,7 @@ os.makedirs(saveRoot+taskTrainName, exist_ok=True)
 # task and model parameters
 dt = 10 # The simulation timestep.
 tau = 100 # The intrinsic time constant of neural state decay.
-T = 3500 # The trial length.
+T = 4000 # The trial length.
 N_trials_per_condition = 4 # The number of trials per training update.
 dd = DelayedEconomicDecision_SeparatedSpatialTask(dt=dt, tau=tau, T=T, N_trials_per_condition=N_trials_per_condition,target_delay_duration=500,wait_duration=500)
 
@@ -57,7 +57,7 @@ train_params['performance_cutoff'] = .99
 
 ## -------- Training loop ##
 ensembleSize=40
-for netii in range(ensembleSize):
+for netii in range(35,ensembleSize):
     startTime = datetime.datetime.now().strftime('%Y%m%d-%H-%m')
 
     print(startTime, netii)
