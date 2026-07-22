@@ -7,8 +7,10 @@ import sys
 from pathlib import Path
 
 
-dirName = sys.argv[1] if len(sys.argv) > 1 else 'spatialTask'
-savedRoot = Path("/gpfsnyu/home/zl6041/DURF_project/EconomicDecisionMakingReferenceFrame/Training/savedForHPC")
+analysisRoot = Path(__file__).resolve().parent
+trainingRoot = analysisRoot.parent / 'Training'
+dirName = sys.argv[1] if len(sys.argv) > 1 else 'spatialTask_combined'
+savedRoot = trainingRoot / 'savedForLocal'
 if len(sys.argv) > 2:
     savedRoot = Path(sys.argv[2])
 

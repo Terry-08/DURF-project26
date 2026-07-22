@@ -9,14 +9,23 @@ mpl.rcParams['ps.fonttype'] = 42
 import os
 
 
-dirName = 'spatialTask'
+modelVariant = 'seperated'
 outputMode = 'spatial'
+analysisDir = os.path.dirname(os.path.abspath(__file__))
+dataRoot = os.path.join(
+    os.path.dirname(analysisDir),
+    'Training',
+    'savedForLocal',
+    'spatialTask_seperated',
+)
 
 
 def main():
-    root = "./savedForHPC/"+dirName
-    for name in os.listdir(root):
-        dataDir = os.path.join(root,name)
+    if not os.path.isdir(dataRoot):
+        raise FileNotFoundError(f"{modelVariant} model directory not found: {dataRoot}")
+
+    for name in sorted(os.listdir(dataRoot)):
+        dataDir = os.path.join(dataRoot,name)
         if os.path.isdir(dataDir):
             generateGif(dataDir,outputMode)
 

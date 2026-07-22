@@ -1,0 +1,13 @@
+# Core local analysis environment for Python 3.10.
+# Covers behavior, decoding, PCA, GIF generation, and Jupyter notebooks.
+# PyTorch-based latent circuit analysis is intentionally excluded.
+
+numpy==1.26.3
+scipy==1.11.4
+matplotlib==3.8.0
+scikit-learn==1.3.0
+pandas==2.1.4
+seaborn==0.13.2
+imageio==2.35.1
+jupyter==1.0.0
+ipykernel==6.28.0
